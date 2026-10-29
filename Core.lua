@@ -82,6 +82,7 @@ function Bar:ApplySettings()
   if size < 8 then size = 8 elseif size > 14 then size = 14 end
   self.text:SetFont(FONT, size, "OUTLINE")
   self.timer:SetFont(FONT, size, "OUTLINE")
+  self.total:SetFont(FONT, math.max(7, size - 3), "OUTLINE")
   if cfg.height >= 10 then self.textFrame:Show() else self.textFrame:Hide() end
 
   self.icon:SetWidth(cfg.height)
@@ -136,6 +137,22 @@ function Bar:SetLatency(frac, side)
   lat:Show()
 end
 
+-- "value/total" in the right corner, total in a smaller font
+function Bar:SetTime(value, total, delay)
+  if value < 0 then value = 0 end
+  if delay and delay > 0 then
+    self.timer:SetText(string.format("|cffff4444+%.1f|r %.1f", delay, value))
+  else
+    self.timer:SetText(string.format("%.1f", value))
+  end
+  self.total:SetText(string.format("/%.1f", total))
+end
+
+function Bar:ClearTime()
+  self.timer:SetText("")
+  self.total:SetText("")
+end
+
 function Bar:Begin()
   if self.unlocked then return end
   self.fadeLeft = nil
@@ -168,7 +185,7 @@ function Bar:SetUnlocked(flag)
     self:SetLatency(nil)
     self.icon:Hide()
     self.text:SetText("OctoCast: " .. self.label)
-    self.timer:SetText("")
+    self:ClearTime()
     self:Show()
   else
     self.unlocked = nil
@@ -224,16 +241,26 @@ function OC:CreateBar(key, label, mod)
 
   local text = textFrame:CreateFontString(nil, "OVERLAY")
   text:SetFont(FONT, 12, "OUTLINE")
-  text:SetPoint("LEFT", textFrame, "LEFT", 4, 0)
-  text:SetPoint("RIGHT", textFrame, "RIGHT", -40, 0)
   text:SetJustifyH("LEFT")
   f.text = text
 
+  local total = textFrame:CreateFontString(nil, "OVERLAY")
+  total:SetFont(FONT, 9, "OUTLINE")
+  total:SetPoint("BOTTOMRIGHT", textFrame, "BOTTOMRIGHT", -3, 2)
+  total:SetJustifyH("RIGHT")
+  total:SetTextColor(0.8, 0.8, 0.8)
+  f.total = total
+
   local timer = textFrame:CreateFontString(nil, "OVERLAY")
   timer:SetFont(FONT, 12, "OUTLINE")
-  timer:SetPoint("RIGHT", textFrame, "RIGHT", -4, 0)
+  timer:SetPoint("RIGHT", total, "LEFT", 0, 0)
+  timer:SetPoint("TOP", textFrame, "TOP", 0, 0)
+  timer:SetPoint("BOTTOM", textFrame, "BOTTOM", 0, 0)
   timer:SetJustifyH("RIGHT")
   f.timer = timer
+
+  text:SetPoint("LEFT", textFrame, "LEFT", 4, 0)
+  text:SetPoint("RIGHT", timer, "LEFT", -4, 0)
 
   local icon = f:CreateTexture(nil, "ARTWORK")
   icon:SetPoint("RIGHT", f, "LEFT", -2, 0)

@@ -52,7 +52,7 @@ function mod:EndCurrent(color, text)
   bar:SetProgress(1)
   bar:SetColor(color)
   if text then bar.text:SetText(text) end
-  bar.timer:SetText("")
+  bar:ClearTime()
   bar:Finish(true)
 end
 
@@ -108,14 +108,12 @@ function mod:OnUpdate()
     return
   end
   local total = c.finish - c.start
-  if c.channel then
-    self.bar:SetProgress(left / total)
-  else
-    self.bar:SetProgress((now - c.start) / total)
-  end
+  local value = now - c.start
+  if c.channel then value = left end
+  self.bar:SetProgress(value / total)
   if self.db.showTimer then
-    self.bar.timer:SetText(string.format("%.1f", left))
+    self.bar:SetTime(value, total)
   else
-    self.bar.timer:SetText("")
+    self.bar:ClearTime()
   end
 end

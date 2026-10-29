@@ -107,21 +107,16 @@ function mod:StartBar(name, duration, channel)
     bar:SetLatency(nil)
   end
   bar:SetProgress(channel and 1 or 0)
-  self:SetTimer(duration)
+  if channel then self:SetTimer(duration, duration) else self:SetTimer(0, duration) end
   bar:Begin()
 end
 
-function mod:SetTimer(left)
-  local timer = self.bar.timer
-  if not self.db.showTimer then
-    timer:SetText("")
-    return
-  end
-  if left < 0 then left = 0 end
-  if self.delay and self.delay > 0 then
-    timer:SetText(string.format("|cffff4444+%.1f|r %.1f", self.delay, left))
+-- casts show elapsed/total, channels show remaining/total (matching the draining bar)
+function mod:SetTimer(value, total)
+  if self.db.showTimer then
+    self.bar:SetTime(value, total, self.delay)
   else
-    timer:SetText(string.format("%.1f", left))
+    self.bar:ClearTime()
   end
 end
 
@@ -130,7 +125,7 @@ function mod:Succeed()
   self.casting, self.testing = nil, nil
   bar:SetProgress(1)
   bar:SetColor(OC.db.colors.success)
-  bar.timer:SetText("")
+  bar:ClearTime()
   bar:Finish(true)
 end
 
@@ -142,7 +137,7 @@ function mod:Fail(text)
   bar:SetColor(OC.db.colors.failed)
   bar:SetLatency(nil)
   bar.text:SetText(text)
-  bar.timer:SetText("")
+  bar:ClearTime()
   bar:Finish(true)
 end
 
@@ -165,7 +160,7 @@ function mod:OnUpdate()
       return
     end
     self.bar:SetProgress((now - self.startTime) / (self.endTime - self.startTime))
-    self:SetTimer(self.endTime - now)
+    self:SetTimer(now - self.startTime, self.endTime - self.startTime)
   elseif self.channeling then
     local left = self.endTime - now
     if left <= 0 then
@@ -174,7 +169,7 @@ function mod:OnUpdate()
       return
     end
     self.bar:SetProgress(left / self.duration)
-    self:SetTimer(left)
+    self:SetTimer(left, self.duration)
   end
 end
 
