@@ -11,9 +11,15 @@ local FADE_TIME = 0.4
 local FONT = "Fonts\\FRIZQT__.TTF"
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
+OC.textures = {
+  smooth = "Interface\\AddOns\\OctoCast\\Textures\\Smooth",
+  blizzard = "Interface\\TargetingFrame\\UI-StatusBar",
+  flat = WHITE,
+}
+
 OC.defaults = {
   locked = true,
-  texture = "Interface\\TargetingFrame\\UI-StatusBar",
+  texture = "smooth",
   player = {
     enabled = true, width = 260, height = 22,
     point = { "CENTER", "UIParent", "CENTER", 0, -180 },
@@ -76,24 +82,28 @@ function Bar:ApplySettings()
   local p = cfg.point
   self:SetPoint(p[1], UIParent, p[3], p[4], p[5])
 
-  self.status:SetStatusBarTexture(OC.db.texture)
+  local texture = OC.textures[OC.db.texture] or OC.textures.smooth
+  self.status:SetStatusBarTexture(texture)
+  self.bg:SetTexture(texture)
 
   local size = math.floor(cfg.height * 0.55)
-  if size < 8 then size = 8 elseif size > 14 then size = 14 end
-  self.text:SetFont(FONT, size, "OUTLINE")
-  self.timer:SetFont(FONT, size, "OUTLINE")
-  self.total:SetFont(FONT, math.max(7, size - 3), "OUTLINE")
+  if size < 8 then size = 8 elseif size > 13 then size = 13 end
+  self.text:SetFont(FONT, size)
+  self.timer:SetFont(FONT, size)
+  self.total:SetFont(FONT, math.max(7, size - 3))
   if cfg.height >= 10 then self.textFrame:Show() else self.textFrame:Hide() end
 
+  -- icon sits outside the bar and matches the bar's outer height (border included)
   self.icon:SetWidth(cfg.height)
   self.icon:SetHeight(cfg.height)
   if not cfg.showIcon then self.icon:Hide() end
 
-  self.spark:SetHeight(cfg.height * 2.2)
+  self.spark:SetHeight(cfg.height * 2)
 end
 
 function Bar:SetColor(c)
   self.status:SetStatusBarColor(c[1], c[2], c[3])
+  self.bg:SetVertexColor(c[1] * 0.25, c[2] * 0.25, c[3] * 0.25)
 end
 
 function Bar:SetIcon(texture)
@@ -207,19 +217,35 @@ function OC:CreateBar(key, label, mod)
   f:SetClampedToScreen(true)
   f:EnableMouse(false)
   f:RegisterForDrag("LeftButton")
-  f:SetBackdrop({
-    bgFile = WHITE, edgeFile = WHITE, edgeSize = 1,
-    insets = { left = 1, right = 1, top = 1, bottom = 1 },
-  })
-  f:SetBackdropColor(0, 0, 0, 0.55)
-  f:SetBackdropBorderColor(0, 0, 0, 1)
+  local level = f:GetFrameLevel()
+
+  -- soft dark halo behind a crisp 1px border
+  local shadow = CreateFrame("Frame", nil, f)
+  shadow:SetPoint("TOPLEFT", f, "TOPLEFT", -3, 3)
+  shadow:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 3, -3)
+  shadow:SetFrameLevel(level)
+  shadow:SetBackdrop({ bgFile = WHITE })
+  shadow:SetBackdropColor(0, 0, 0, 0.3)
+
+  local border = CreateFrame("Frame", nil, f)
+  border:SetAllPoints(f)
+  border:SetFrameLevel(level + 1)
+  border:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
+  border:SetBackdropColor(0, 0, 0, 0)
+  border:SetBackdropBorderColor(0, 0, 0, 1)
 
   local status = CreateFrame("StatusBar", nil, f)
   status:SetPoint("TOPLEFT", f, "TOPLEFT", 1, -1)
   status:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -1, 1)
+  status:SetFrameLevel(level + 2)
   status:SetMinMaxValues(0, 1)
   status:SetValue(0)
   f.status = status
+
+  local bg = status:CreateTexture(nil, "BACKGROUND")
+  bg:SetAllPoints(status)
+  bg:SetAlpha(0.85)
+  f.bg = bg
 
   local lat = status:CreateTexture(nil, "OVERLAY")
   local lc = self.db.colors.latency
@@ -230,13 +256,14 @@ function OC:CreateBar(key, label, mod)
   local spark = status:CreateTexture(nil, "OVERLAY")
   spark:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
   spark:SetBlendMode("ADD")
-  spark:SetWidth(16)
+  spark:SetWidth(12)
+  spark:SetAlpha(0.8)
   spark:Hide()
   f.spark = spark
 
   local textFrame = CreateFrame("Frame", nil, status)
   textFrame:SetAllPoints(status)
-  textFrame:SetFrameLevel(status:GetFrameLevel() + 2)
+  textFrame:SetFrameLevel(level + 4)
   f.textFrame = textFrame
 
   local text = textFrame:CreateFontString(nil, "OVERLAY")
@@ -248,7 +275,7 @@ function OC:CreateBar(key, label, mod)
   total:SetFont(FONT, 9, "OUTLINE")
   total:SetPoint("BOTTOMRIGHT", textFrame, "BOTTOMRIGHT", -3, 2)
   total:SetJustifyH("RIGHT")
-  total:SetTextColor(0.8, 0.8, 0.8)
+  total:SetTextColor(0.75, 0.75, 0.75)
   f.total = total
 
   local timer = textFrame:CreateFontString(nil, "OVERLAY")
@@ -262,9 +289,22 @@ function OC:CreateBar(key, label, mod)
   text:SetPoint("LEFT", textFrame, "LEFT", 4, 0)
   text:SetPoint("RIGHT", timer, "LEFT", -4, 0)
 
-  local icon = f:CreateTexture(nil, "ARTWORK")
-  icon:SetPoint("RIGHT", f, "LEFT", -2, 0)
-  icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+  for _, fs in ipairs({ text, timer, total }) do
+    fs:SetShadowColor(0, 0, 0, 1)
+    fs:SetShadowOffset(1, -1)
+  end
+
+  -- bordered icon frame; SetTexture forwards to the inner texture
+  local icon = CreateFrame("Frame", nil, f)
+  icon:SetPoint("RIGHT", f, "LEFT", -4, 0)
+  icon:SetFrameLevel(level + 1)
+  icon:SetBackdrop({ bgFile = WHITE })
+  icon:SetBackdropColor(0, 0, 0, 1)
+  local iconTex = icon:CreateTexture(nil, "ARTWORK")
+  iconTex:SetPoint("TOPLEFT", icon, "TOPLEFT", 1, -1)
+  iconTex:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", -1, 1)
+  iconTex:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+  icon.SetTexture = function(self, texture) iconTex:SetTexture(texture) end
   icon:Hide()
   f.icon = icon
 
@@ -340,6 +380,7 @@ end
 function OC:Initialize()
   OctoCastDB = CopyDefaults(self.defaults, OctoCastDB)
   self.db = OctoCastDB
+  if not self.textures[self.db.texture] then self.db.texture = "smooth" end
   for _, key in ipairs(self.moduleOrder) do
     local mod = self.modules[key]
     mod.db = self.db[key]
@@ -358,6 +399,7 @@ local function Help()
   OC:Print("  unlock | lock  - move the bars")
   OC:Print("  test  - show a test cast on the player bar")
   OC:Print("  latency  - toggle latency display")
+  OC:Print("  texture smooth | blizzard | flat  - bar texture")
   OC:Print("  <bar> on | off  - bar is player, gcd, swing or target")
   OC:Print("  <bar> width <n> | height <n>")
   OC:Print("  <bar> icon  - toggle spell icon")
@@ -384,6 +426,14 @@ function OC:SlashCommand(msg)
   elseif cmd == "latency" then
     self.db.player.showLatency = not self.db.player.showLatency
     self:Print("Latency display " .. (self.db.player.showLatency and "on" or "off") .. ".")
+  elseif cmd == "texture" then
+    if args[2] and self.textures[args[2]] then
+      self.db.texture = args[2]
+      for _, key in ipairs(self.moduleOrder) do self.modules[key].bar:ApplySettings() end
+      self:Print("Texture set to " .. args[2] .. ".")
+    else
+      self:Print("Textures: smooth, blizzard, flat.")
+    end
   elseif cmd == "reset" then
     OctoCastDB = nil
     ReloadUI()
