@@ -24,7 +24,7 @@ Clone or extract this repository into `Interface\AddOns\OctoCast`, so that `Octo
 | `unlock` / `lock` | Move the bars with the mouse |
 | `test` | Show a test cast on the player bar |
 | `latency` | Toggle the latency display |
-| `texture smooth` / `blizzard` / `flat` | Choose the bar texture |
+| `texture <name>` | Choose the bar texture and show a test cast: `smooth`, `gloss`, `minimal`, `banto`, `blizzard`, `flat` |
 | `<bar> on` / `<bar> off` | Enable or disable a bar: `player`, `gcd`, `swing`, `target` |
 | `<bar> width <n>` / `<bar> height <n>` | Resize a bar |
 | `<bar> icon` | Toggle the spell icon |

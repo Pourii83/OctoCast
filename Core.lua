@@ -13,6 +13,9 @@ local WHITE = "Interface\\Buttons\\WHITE8X8"
 
 OC.textures = {
   smooth = "Interface\\AddOns\\OctoCast\\Textures\\Smooth",
+  gloss = "Interface\\AddOns\\OctoCast\\Textures\\Gloss",
+  minimal = "Interface\\AddOns\\OctoCast\\Textures\\Minimal",
+  banto = "Interface\\AddOns\\OctoCast\\Textures\\Banto",
   blizzard = "Interface\\TargetingFrame\\UI-StatusBar",
   flat = WHITE,
 }
@@ -85,6 +88,7 @@ function Bar:ApplySettings()
   local texture = OC.textures[OC.db.texture] or OC.textures.smooth
   self.status:SetStatusBarTexture(texture)
   self.bg:SetTexture(texture)
+  if self.color then self:SetColor(self.color) end
 
   local size = math.floor(cfg.height * 0.55)
   if size < 8 then size = 8 elseif size > 13 then size = 13 end
@@ -102,6 +106,7 @@ function Bar:ApplySettings()
 end
 
 function Bar:SetColor(c)
+  self.color = c
   self.status:SetStatusBarColor(c[1], c[2], c[3])
   self.bg:SetVertexColor(c[1] * 0.25, c[2] * 0.25, c[3] * 0.25)
 end
@@ -399,7 +404,7 @@ local function Help()
   OC:Print("  unlock | lock  - move the bars")
   OC:Print("  test  - show a test cast on the player bar")
   OC:Print("  latency  - toggle latency display")
-  OC:Print("  texture smooth | blizzard | flat  - bar texture")
+  OC:Print("  texture <name>  - smooth, gloss, minimal, banto, blizzard, flat")
   OC:Print("  <bar> on | off  - bar is player, gcd, swing or target")
   OC:Print("  <bar> width <n> | height <n>")
   OC:Print("  <bar> icon  - toggle spell icon")
@@ -431,8 +436,9 @@ function OC:SlashCommand(msg)
       self.db.texture = args[2]
       for _, key in ipairs(self.moduleOrder) do self.modules[key].bar:ApplySettings() end
       self:Print("Texture set to " .. args[2] .. ".")
+      if self.db.locked then self.modules.player:Test() end
     else
-      self:Print("Textures: smooth, blizzard, flat.")
+      self:Print("Textures: smooth, gloss, minimal, banto, blizzard, flat (now " .. self.db.texture .. ").")
     end
   elseif cmd == "reset" then
     OctoCastDB = nil
