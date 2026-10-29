@@ -1,0 +1,12 @@
+## Interface: 11200
+## Title: |cff33ff99OctoCast|r
+## Notes: Quartz-style cast bars for OctoWoW (player cast, latency, GCD, swing, target)
+## Author: Pourii83
+## Version: 0.1.0
+## SavedVariables: OctoCastDB
+
+Core.lua
+Modules\Player.lua
+Modules\GCD.lua
+Modules\Swing.lua
+Modules\Target.lua
